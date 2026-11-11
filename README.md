@@ -17,17 +17,7 @@ Keep local values in separate files:
 
 - `secrets.yaml` for Home Assistant secrets.
 - `esphome/secrets.yaml` for ESPHome secrets such as `wifi_ssid`, `wifi_password`, `esphome_api_encryption_key`, and `c9_lights_mac_address`.
-- `.env` only for local tools that explicitly load it; Home Assistant and ESPHome do not load it automatically.
 - Lutron client private keys must remain local.
-
-The setup helpers can create secret-file scaffolds on Home Assistant OS and merge local files from an SSH host on macOS. Run their dry-run modes first:
-
-```sh
-sh scripts/setup-secrets-haos.sh --dry-run
-node scripts/setup-secrets.mjs --dry-run --sync-from <ssh-alias>
-```
-
-After reviewing the proposed actions, omit `--dry-run` to apply them. Configure the SSH alias in `~/.ssh/config`. The macOS helper requires Node.js.
 
 Validate the Home Assistant and ESPHome configurations with their respective tools before deploying changes. Never commit local secret files or private keys.
 
