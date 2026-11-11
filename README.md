@@ -1,30 +1,36 @@
 # Home Assistant Configuration
 
-## Local Secret-File Setup
+Personal Home Assistant and ESPHome configuration. Entity IDs, device names, and automations are tailored to one installation; this is not a turnkey configuration for another home.
 
-The repository uses separate secret-file locations for Home Assistant and ESPHome:
+## Contents
 
-- `secrets.yaml` for Home Assistant.
-- `esphome/secrets.yaml` for ESPHome.
-- `.env` as an optional scaffold for tools that explicitly read environment files; Home Assistant does not load it automatically.
-- Lutron client private keys (`lutron_caseta-*-key.pem`) remain local and are ignored by Git.
+- `configuration.yaml`, `automations.yaml`, `scripts.yaml`, and `scenes.yaml` define Home Assistant behavior.
+- `esphome/` contains an ESP32 Bluetooth proxy configuration for a BLE light controller.
+- `custom_components/` contains local copies of the HACS and Alexa Media integrations.
+- `blueprints/` contains reusable Home Assistant automation, script, and template blueprints.
 
-The setup helpers create ignored files when missing, preserve local values, and recover the ESPHome API key and BLE controller address from the current config or local Git history into `esphome/secrets.yaml`. They do not change tracked configuration. The HAOS helper preserves existing Wi-Fi secrets and reports missing `!secret` names without printing values.
+## Local Setup
 
-First, run on Home Assistant OS from the repository checkout under `/config`:
+Install Home Assistant and the integrations required by the configuration, then place the repository contents in the Home Assistant configuration directory. Review the entity IDs and device-specific settings before loading it.
+
+Keep local values in separate files:
+
+- `secrets.yaml` for Home Assistant secrets.
+- `esphome/secrets.yaml` for ESPHome secrets such as `wifi_ssid`, `wifi_password`, `esphome_api_encryption_key`, and `c9_lights_mac_address`.
+- `.env` only for local tools that explicitly load it; Home Assistant and ESPHome do not load it automatically.
+- Lutron client private keys must remain local.
+
+The setup helpers can create secret-file scaffolds on Home Assistant OS and merge local files from an SSH host on macOS. Run their dry-run modes first:
 
 ```sh
 sh scripts/setup-secrets-haos.sh --dry-run
-sh scripts/setup-secrets-haos.sh
+node scripts/setup-secrets.mjs --dry-run --sync-from <ssh-alias>
 ```
 
-Then, on macOS with Node.js installed, import the Pi's ignored files over SSH. Configure an SSH alias in `~/.ssh/config` and replace `pi-alias` below with that alias:
+After reviewing the proposed actions, omit `--dry-run` to apply them. Configure the SSH alias in `~/.ssh/config`. The macOS helper requires Node.js.
 
-```sh
-node scripts/setup-secrets.mjs --dry-run --sync-from pi-alias
-node scripts/setup-secrets.mjs --sync-from pi-alias
-```
+Validate the Home Assistant and ESPHome configurations with their respective tools before deploying changes. Never commit local secret files or private keys.
 
-The Mac helper merges remote values into local files without printing them; existing Mac values win if a key already exists. `.env` remains a comment-only scaffold because Home Assistant and ESPHome do not load it. After both machines report the required secret names are present, the tracked config can be changed to reference them. Never commit the generated files.
+## Before Publishing
 
-This removes inline values from the current config only. Before making the repository public, replace its history with a clean initial commit or otherwise purge old commits, and rotate the ESPHome API encryption key and any exposed Lutron private key; earlier commits contain these credentials.
+Review the configuration for household details, device placement, security devices, and routines that should not be public. Ensure `.gitignore` excludes `secrets.yaml`, `esphome/secrets.yaml`, `.env` files, and private keys. Check every branch and tag, not only the current files. If credentials appeared in any published history, rotate them; removing a value from the latest commit does not revoke it or erase copies of old commits.
