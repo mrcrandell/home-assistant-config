@@ -219,10 +219,12 @@
   alias: "Doorbell - Physical Ring Trigger"
   description: "Fires action when UniFi Doorbell Lite button is pressed"
   triggers:
-    - trigger: state
-      entity_id: binary_sensor.doorbell_lite_doorbell
-      from: "off"
-      to: "on"
+    - trigger: event.received
+      target:
+        entity_id: event.doorbell_lite_doorbell
+      options:
+        event_type:
+          - ring
   actions:
     - action: persistent_notification.create
       data:
@@ -234,9 +236,12 @@
   alias: "Doorbell - Play Chime on Minis"
   description: "Plays S010-ding-dong.mp3 on all speakers labeled Conductor Announcer"
   triggers:
-    - trigger: state
-      entity_id: binary_sensor.doorbell_lite_doorbell
-      to: "on"
+    - trigger: event.received
+      target:
+        entity_id: event.doorbell_lite_doorbell
+      options:
+        event_type:
+          - ring
   actions:
     # 1. Temporarily bump volume so it can be heard across the house
     - action: media_player.volume_set
