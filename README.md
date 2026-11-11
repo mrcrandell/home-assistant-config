@@ -21,6 +21,6 @@ Keep local values in separate files:
 
 Validate the Home Assistant and ESPHome configurations with their respective tools before deploying changes. Never commit local secret files or private keys.
 
-## Before Publishing
+## Security and Privacy
 
-Review the configuration for household details, device placement, security devices, and routines that should not be public. Ensure `.gitignore` excludes `secrets.yaml`, `esphome/secrets.yaml`, `.env` files, and private keys. Check every branch and tag, not only the current files. If credentials appeared in any published history, rotate them; removing a value from the latest commit does not revoke it or erase copies of old commits.
+This public repository includes installation-specific entity IDs, device names, and routines. Review those details before adapting the configuration for another home. Keep credentials in local `secrets.yaml` files and never commit secret values or private keys.
