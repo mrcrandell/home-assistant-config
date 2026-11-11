@@ -1,0 +1,355 @@
+- id: "1773621084023"
+  alias: Sleep Music Alternator (plexamp)
+  description: Alternates playlists on Bedroom Clock using Local Plex Integration
+  triggers:
+    - entity_id: input_button.start_sleep_music
+      trigger: state
+  actions:
+    - if:
+        - condition: state
+          entity_id: input_boolean.sleep_music_tracker
+          state: "off"
+      then:
+        - action: media_player.play_media
+          target:
+            entity_id: media_player.bedroom_clock
+          data:
+            media:
+              media_content_id: '{"playlist_name": "Sleep", "shuffle": "1"}'
+              media_content_type: playlist
+              metadata: {}
+        - action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.sleep_music_tracker
+      else:
+        - action: media_player.play_media
+          target:
+            entity_id: media_player.bedroom_clock
+          data:
+            media:
+              media_content_id:
+                '{"playlist_name": "Floating Through Space", "shuffle":
+                "1"}'
+              media_content_type: playlist
+              metadata: {}
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.sleep_music_tracker
+  mode: single
+- id: "1773938832665"
+  alias: "Lock: Notify with Deep Link to Apple Home"
+  description: Sends a notification with the user's name and opens Apple Home on tap
+  triggers:
+    - trigger: state
+      entity_id: lock.back_door
+      from: locked
+      to: unlocked
+  actions:
+    - delay: 00:00:10
+    - condition: state
+      entity_id: lock.back_door
+      state: unlocked
+    - action: notify.mobile_app_iphone_xvi
+      data:
+        title: Back Door Unlocked
+        message:
+          "{% set raw_user = state_attr('lock.back_door', 'changed_by') %}  {%
+          if raw_user and 'keypad - ' in raw_user %}\n  Opened by {{ raw_user | replace('keypad
+          - ', '') }}\n{% elif raw_user %}\n  Opened by {{ raw_user }}\n{% else %}\n
+          \ The back door is now open.\n{% endif %}\n"
+        url: com.apple.home://
+        push:
+          interruption-level: active
+- id: "1783607337029"
+  alias: Sleep Music Alternator
+  description: Alternates playlists on Bedroom Clock using Voice Commands
+  triggers:
+    - entity_id: input_button.start_sleep_music
+      trigger: state
+  actions:
+    - if:
+        - condition: state
+          entity_id: input_boolean.sleep_music_tracker
+          state: "off"
+      then:
+        - action: media_player.play_media
+          target:
+            entity_id: media_player.bedroom_clock
+          data:
+            media:
+              media_content_id: shuffle my playlist called Sleep on Spotify
+              media_content_type: custom
+              metadata: {}
+        - delay: "00:00:05" # Give Alexa 5 seconds to initiate the stream
+        - action: media_player.repeat_set
+          target:
+            entity_id: media_player.bedroom_clock
+          data:
+            repeat: all
+        - action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.sleep_music_tracker
+      else:
+        - action: media_player.play_media
+          target:
+            entity_id: media_player.bedroom_clock
+          data:
+            media:
+              media_content_id: shuffle my playlist called Floating Through Space on Spotify
+              media_content_type: custom
+              metadata: {}
+        - delay: "00:00:05" # Give Alexa 5 seconds to initiate the stream
+        - action: media_player.repeat_set
+          target:
+            entity_id: media_player.bedroom_clock
+          data:
+            repeat: all
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.sleep_music_tracker
+  mode: single
+
+- id: "1774000000000"
+  alias: "Bedroom Clock: Clean Up Phantom Streams"
+  description: "Automatically stops the Bedroom Echo if it plays for too long without use"
+  triggers:
+    # Trigger if it stays in a 'playing' state continuously for 9 hours
+    - trigger: state
+      entity_id: media_player.bedroom_clock
+      to: "playing"
+      for: "09:00:00"
+  conditions: []
+  actions:
+    - action: media_player.media_stop
+      target:
+        entity_id: media_player.bedroom_clock
+  mode: single
+
+- id: ac_turn_off_eco_on_fan_change
+  alias: "AC: Turn off Eco on Fan Change"
+  description: "Intercepts fan changes, turns off Eco, delays, and enforces the fan speed."
+  triggers:
+    - trigger: state
+      entity_id: climate.dining_room_window_ac_air_conditioner
+      attribute: fan_mode
+  conditions:
+    - condition: state
+      entity_id: climate.dining_room_window_ac_air_conditioner
+      attribute: preset_mode
+      state: "eco"
+  actions:
+    - variables:
+        target_fan: "{{ trigger.to_state.attributes.fan_mode }}"
+    - action: climate.set_preset_mode
+      target:
+        entity_id: climate.dining_room_window_ac_air_conditioner
+      data:
+        preset_mode: "none"
+    - delay:
+        milliseconds: 800
+    - action: climate.set_fan_mode
+      target:
+        entity_id: climate.dining_room_window_ac_air_conditioner
+      data:
+        fan_mode: "{{ target_fan }}"
+  mode: restart
+
+- id: hvac_turn_on_dehumidifier_5m_after_ac_starts
+  alias: "HVAC: Turn on Dehumidifier 5m After AC Starts"
+  description: "Prevents immediate double-power draw while ensuring basement humidity is managed during AC runs."
+  triggers:
+    - trigger: state
+      entity_id: climate.dining_room_window_ac_air_conditioner
+      to: "cool"
+      for:
+        minutes: 5
+  conditions:
+    - condition: state
+      entity_id: switch.dehumidifier
+      state: "off"
+  actions:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.dehumidifier
+  mode: single
+
+- id: dining_room_heat_temperature_when_everyone_away
+  alias: "HVAC: Adjust Dining Room Heat When Everyone Is Away"
+  description: "Lowers the set temperature by 3 degrees while everyone is away and raises it by 3 when someone returns."
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.is_everyone_away
+      from: "off"
+      to: "on"
+      id: everyone_away
+    - trigger: state
+      entity_id: input_boolean.is_everyone_away
+      from: "on"
+      to: "off"
+      id: someone_home
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: everyone_away
+            - condition: state
+              entity_id: climate.dining_room
+              state: heat
+          sequence:
+            - action: climate.set_temperature
+              target:
+                entity_id: climate.dining_room
+              data:
+                temperature: "{{ state_attr('climate.dining_room', 'temperature') | float - 3 }}"
+        - conditions:
+            - condition: trigger
+              id: someone_home
+            - condition: state
+              entity_id: climate.dining_room
+              state: heat
+          sequence:
+            - action: climate.set_temperature
+              target:
+                entity_id: climate.dining_room
+              data:
+                temperature: "{{ state_attr('climate.dining_room', 'temperature') | float + 3 }}"
+  mode: single
+
+- id: doorbell_physical_ring_trigger
+  alias: "Doorbell - Physical Ring Trigger"
+  description: "Fires action when UniFi Doorbell Lite button is pressed"
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.doorbell_lite_doorbell
+      from: "off"
+      to: "on"
+  actions:
+    - action: persistent_notification.create
+      data:
+        title: "Doorbell Ring!"
+        message: "The UniFi Doorbell button was pressed."
+  mode: single
+
+- id: doorbell_play_chime_on_minis
+  alias: "Doorbell - Play Chime on Minis"
+  description: "Plays S010-ding-dong.mp3 on all speakers labeled Conductor Announcer"
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.doorbell_lite_doorbell
+      to: "on"
+  actions:
+    # 1. Temporarily bump volume so it can be heard across the house
+    - action: media_player.volume_set
+      target:
+        label_id: conductor_announcer
+      data:
+        volume_level: 0.65
+
+    # 2. Play the chime file via the media_source URI
+    - action: media_player.play_media
+      target:
+        label_id: conductor_announcer
+      data:
+        media_content_id: "media-source://media_source/local/S010-ding-dong.mp3"
+        media_content_type: "audio/mpeg"
+  mode: single
+
+- id: christmas_lights_seasonal_schedule
+  alias: "Christmas Lights: Sunset On, 11 PM Off"
+  description: "Runs Oct 1 through Jan 1 (inclusive). Uses #ff6e54 from Oct 1-Nov 30, then white through Jan 1."
+  triggers:
+    - trigger: sun
+      event: sunset
+      offset: "-00:30:00"
+      id: sunset_on
+    - trigger: time
+      at: "23:00:00"
+      id: night_off
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ now().month in [10, 11, 12] or (now().month == 1 and now().day == 1) }}
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: sunset_on
+          sequence:
+            - repeat:
+                count: 2
+                sequence:
+                  - action: esphome.esp32_bluetooth_proxy_2df374_send_command
+                    data:
+                      payload: [170, 2, 1, 1, 174]
+                  - delay: "00:00:02"
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ now().month in [10, 11] }}"
+                  sequence:
+                    - repeat:
+                        count: 2
+                        sequence:
+                          - action: esphome.esp32_bluetooth_proxy_2df374_send_command
+                            data:
+                              payload: [170, 3, 7, 1, 0, 11, 2, 158, 187]
+                          - delay: "00:00:02"
+              default:
+                - repeat:
+                    count: 2
+                    sequence:
+                      - action: esphome.esp32_bluetooth_proxy_2df374_send_command
+                        data:
+                          payload: [170, 3, 7, 1, 0, 0, 0, 0, 187]
+                      - delay: "00:00:02"
+            - delay: "00:00:02" # Let the controller process the last color command before power-on
+            - action: light.turn_on
+              target:
+                entity_id: light.christmas_light
+        - conditions:
+            - condition: trigger
+              id: night_off
+          sequence:
+            - repeat:
+                count: 2
+                sequence:
+                  - action: esphome.esp32_bluetooth_proxy_2df374_send_command
+                    data:
+                      payload: [170, 2, 1, 0, 173]
+                  - delay: "00:00:02"
+            - action: light.turn_off
+              target:
+                entity_id: light.christmas_light
+  mode: single
+
+- id: conductor_indoor_christmas_schedule
+  alias: "Christmas Lights: Indoor Schedule"
+  description: "Turns on entities labeled Conductor Indoor Christmas 30 minutes before sunset and off at 11:30 PM."
+  triggers:
+    - trigger: sun
+      event: sunset
+      offset: "-00:30:00"
+      id: sunset_on
+    - trigger: time
+      at: "23:30:00"
+      id: night_off
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: sunset_on
+            - condition: state
+              entity_id: input_select.house_theme
+              state: "Christmas"
+          sequence:
+            - action: homeassistant.turn_on
+              target:
+                label_id: conductor_indoor_christmas
+        - conditions:
+            - condition: trigger
+              id: night_off
+          sequence:
+            - action: homeassistant.turn_off
+              target:
+                label_id: conductor_indoor_christmas
+  mode: single

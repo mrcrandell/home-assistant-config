@@ -1,0 +1,58 @@
+# --- Security & Credentials (CRITICAL) ---
+secrets.yaml
+.env
+.env.*
+!.env.example
+lutron_caseta-*-key.pem
+*.google.token
+.google.token
+.spotify-token-cache
+.homekit.state
+*.pickle
+# Your Google SDM credentials often generate these
+SERVICE_ACCOUNT.json
+# Nest specific
+nest_refresh_token
+
+# --- Databases & Logs ---
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.log.*
+OZW_Log.txt
+home-assistant_v2.db
+home-assistant_v2.db-shm
+home-assistant_v2.db-wal
+
+# --- Home Assistant Internals ---
+# These are machine-generated and will break a fresh install if restored incorrectly
+.HA_VERSION
+.ha_run.lock
+.storage/
+.cloud/
+.ip_authenticated.yaml
+backups/
+*.backup
+image/
+
+# --- Python & IDE ---
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+
+# --- HACS & Custom Assets ---
+# Only ignore if you want to re-install via HACS on a new machine
+# Many devs PREFER to track these so they have a total code snapshot
+# www/community/
+# custom_components/
+
+# --- Downloads & Caches ---
+tts/
+downloads/
+
+# Home Assistant cache
+.cache/**
+!.cache/
+!.cache/.gitkeep

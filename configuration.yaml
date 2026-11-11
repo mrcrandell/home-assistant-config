@@ -1,0 +1,125 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+input_boolean:
+  is_everyone_away:
+    name: Everyone Away
+    icon: mdi:home-export-outline
+  is_someone_home:
+    name: Someone Home
+    icon: mdi:home-account
+
+input_select:
+  house_theme:
+    name: House Theme
+    options:
+      - Default
+      - Halloween
+      - Christmas
+
+homekit:
+  entity_config:
+    input_boolean.is_everyone_away:
+      name: Everyone Away
+    input_boolean.is_someone_home:
+      name: Someone Home
+    input_select.house_theme:
+      name: House Theme
+
+template:
+  - switch:
+      - name: "Energy Saving"
+        unique_id: nest_eco_switch_dining
+        state: "{{ is_state_attr('climate.dining_room', 'preset_mode', 'eco') }}"
+        turn_on:
+          action: climate.set_preset_mode
+          target:
+            entity_id: climate.dining_room
+          data:
+            preset_mode: "eco"
+        turn_off:
+          action: climate.set_preset_mode
+          target:
+            entity_id: climate.dining_room
+          data:
+            preset_mode: "none"
+        icon: >-
+          {% if is_state_attr('climate.dining_room', 'preset_mode', 'eco') %}
+            mdi:leaf
+          {% else %}
+            mdi:leaf-off
+          {% endif %}
+      - name: "Good Night Music"
+        unique_id: good_night_helper
+        # This ensures the switch always appears 'off' in the UI once the sequence finishes
+        state: "{{ is_state('switch.good_night_music', 'on') }}"
+        turn_on:
+          - action: input_button.press
+            target:
+              entity_id: input_button.start_sleep_music
+          - delay: "00:00:01"
+          - action: switch.turn_off
+            target:
+              entity_id: switch.good_night_music
+        turn_off:
+          action: system_log.write
+          data:
+            message: "Good Night Music switch reset to off"
+
+  - light:
+      - name: "Christmas Light"
+        unique_id: christmas_light
+        turn_on:
+          action: esphome.esp32_bluetooth_proxy_2df374_send_command
+          data:
+            payload: [170, 2, 1, 1, 174]
+        turn_off:
+          action: esphome.esp32_bluetooth_proxy_2df374_send_command
+          data:
+            payload: [170, 2, 1, 0, 173]
+        set_hs:
+          action: esphome.esp32_bluetooth_proxy_2df374_send_command
+          data:
+            payload: >-
+              {% set hue = h | default(0) | int %}
+              {% set h_high = hue // 256 %}
+              {% set h_low = hue % 256 %}
+              {{ [170, 3, 7, 1, h_high, h_low, 3, 232, 187] }}
+
+homeassistant:
+  customize:
+    climate.dining_room_window_ac_air_conditioner:
+      target_temp_step: 1.0
+      # 1. System capability flag:
+      # 1 (Temp) + 8 (Fan) + 16 (Presets) = 25
+      supported_features: 25
+
+      # 2. Keeps only the working HVAC modes
+      hvac_modes:
+        - "off"
+        - "cool"
+        - "dry"
+        - "fan_only"
+
+      # 3. Limits presets to just 'none' (standard) and 'eco'
+      preset_modes:
+        - "none"
+        - "eco"
+
+      # 4. Keeps only your clean physical fan speeds
+      fan_modes:
+        - "auto"
+        - "low"
+        - "medium"
+        - "high"
+
+      # 5. Empties the swing options, hiding the panel entirely from the UI
+      # swing_modes: []

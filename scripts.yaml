@@ -1,0 +1,30 @@
+start_sleep_music:
+  sequence:
+  - action: input_button.press
+    metadata: {}
+    target:
+      entity_id: input_button.start_sleep_music
+    data: {}
+  alias: Start Sleep Music
+  description: ''
+light_tester:
+  sequence:
+  - action: esphome.esp32_bluetooth_proxy_2df374_send_command
+    data:
+      payload:
+      - 170
+      - 2
+      - 1
+      - 1
+      - 174
+  - delay:
+      seconds: 2
+  - repeat:
+      count: 6
+      sequence:
+      - action: esphome.esp32_bluetooth_proxy_2df374_send_command
+        data:
+          payload: '{{ [170, 2, repeat.index + 1, 10, (182 + repeat.index + 1) % 256]
+            }}'
+      - delay:
+          seconds: 3
