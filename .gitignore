@@ -4,6 +4,8 @@ secrets.yaml
 .env.*
 !.env.example
 lutron_caseta-*-key.pem
+lutron_caseta-04cc302e-ca.pem
+lutron_caseta-04cc302e-cert.pem
 *.google.token
 .google.token
 .spotify-token-cache
