@@ -358,3 +358,78 @@
               target:
                 label_id: conductor_indoor_christmas
   mode: single
+
+- id: front_porch_kasa_christmas_schedule
+  alias: "Front Porch Kasa: Christmas Schedule"
+  description: "Runs the outdoor Christmas schedule for the Front Porch Kasa outlets and resynchronizes when the Kasa comes online."
+  triggers:
+    - trigger: sun
+      event: sunset
+      offset: "-00:30:00"
+      id: sunset_on
+    - trigger: time
+      at: "23:00:00"
+      id: night_off
+    - trigger: state
+      entity_id: binary_sensor.tp_link_smart_plug_045c_cloud_connection
+      to: "on"
+      id: reconnected
+  conditions:
+    - condition: state
+      entity_id: binary_sensor.tp_link_smart_plug_045c_cloud_connection
+      state: "on"
+  actions:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: sunset_on
+            - condition: template
+              value_template: >-
+                {{ now().month in [10, 11, 12] or (now().month == 1 and now().day == 1) }}
+          sequence:
+            - action: homeassistant.turn_on
+              target:
+                label_id: conductor_outside_christmas
+            - action: switch.turn_on
+              target:
+                entity_id: switch.tp_link_smart_plug_045c_christmas_lights_2
+        - conditions:
+            - condition: trigger
+              id: night_off
+            - condition: template
+              value_template: >-
+                {{ now().month in [10, 11, 12] or (now().month == 1 and now().day == 1) }}
+          sequence:
+            - action: homeassistant.turn_off
+              target:
+                label_id: conductor_outside_christmas
+            - action: switch.turn_off
+              target:
+                entity_id: switch.tp_link_smart_plug_045c_christmas_lights_2
+        - conditions:
+            - condition: trigger
+              id: reconnected
+            - condition: template
+              value_template: >-
+                {% set in_season = now().month in [10, 11, 12] or (now().month == 1 and now().day == 1) %}
+                {% set next_setting = as_datetime(state_attr('sun.sun', 'next_setting')) %}
+                {% set sunset_today = next_setting if is_state('sun.sun', 'above_horizon') else next_setting - timedelta(days=1) %}
+                {{ in_season and sunset_today.date() == now().date() and now() >= sunset_today - timedelta(minutes=30) and now() < today_at('23:00') }}
+          sequence:
+            - action: homeassistant.turn_on
+              target:
+                label_id: conductor_outside_christmas
+            - action: switch.turn_on
+              target:
+                entity_id: switch.tp_link_smart_plug_045c_christmas_lights_2
+        - conditions:
+            - condition: trigger
+              id: reconnected
+          sequence:
+            - action: homeassistant.turn_off
+              target:
+                label_id: conductor_outside_christmas
+            - action: switch.turn_off
+              target:
+                entity_id: switch.tp_link_smart_plug_045c_christmas_lights_2
+  mode: single
